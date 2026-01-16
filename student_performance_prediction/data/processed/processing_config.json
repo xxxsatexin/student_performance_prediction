@@ -1,0 +1,1 @@
+{"target_column": "final_grade", "categorical_columns": ["gender", "parent_education", "school"], "numerical_columns": ["student_id", "age", "study_time", "classes_attended", "total_classes", "assignments_completed", "total_assignments", "previous_grade", "extracurricular_activities", "study_regularity"], "drop_columns": []}

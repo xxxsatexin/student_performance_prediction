@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}预测结果 - 学生成绩预测系统{% endblock %}
+
+{% block content %}
+<style>
+    .custom-progress {
+        height: 30px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+    .custom-progress-bar {
+        height: 100%;
+        text-align: center;
+        line-height: 30px;
+        color: white;
+        font-weight: bold;
+    }
+    .custom-progress-bar.bg-danger {
+        background-color: #dc3545;
+    }
+    .custom-progress-bar.bg-warning {
+        background-color: #ffc107;
+    }
+    .custom-progress-bar.bg-success {
+        background-color: #28a745;
+    }
+</style>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">预测结果</h3>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="display-4 mb-3">
+                            <i class="fas fa-chart-line text-primary me-2"></i>
+                            预测成绩: <span class="fw-bold">{{ prediction | round(2) }}</span>
+                        </div>
+                        <p class="lead">
+                            使用模型: <span class="badge bg-info">{{ model_name }}</span>
+                        </p>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6 mx-auto">
+                            {% set score_percent = (prediction / 100) * 100 %}
+                            {% set score_color = 'bg-danger' if score_percent < 60 else ('bg-warning' if score_percent < 80 else 'bg-success') %}
+                            
+                            <!-- Progress bar using custom CSS classes -->
+                            <div class="custom-progress">
+                                <div class="custom-progress-bar {{ score_color }} w-{{ score_percent|int }}" role="progressbar" aria-valuenow="{{ score_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ prediction | round(2) }}
+                                </div>
+                            </div>
+                            
+                            <!-- Scale labels -->
+                            <div class="d-flex justify-content-between mt-2">
+                                <small>0</small>
+                                <small>不及格</small>
+                                <small>及格</small>
+                                <small>良好</small>
+                                <small>优秀</small>
+                                <small>100</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">输入数据</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>特征</th>
+                                            <th>值</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for feature, value in input_data.items() %}
+                                        <tr>
+                                            <td>{{ feature }}</td>
+                                            <td>{{ value }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">结果解读</h5>
+                        </div>
+                        <div class="card-body">
+                            {% set score_level = '不及格' if prediction < 60 else ('及格' if prediction < 70 else ('良好' if prediction < 85 else '优秀')) %}
+                            
+                            <p>根据输入的学生数据，预测该学生的成绩为 <strong>{{ prediction | round(2) }}</strong>，属于<strong>{{ score_level }}</strong>水平。</p>
+                            
+                            {% if score_level == '不及格' %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>注意：</strong> 该学生可能需要额外的学习支持和辅导。建议关注以下方面：
+                                <ul>
+                                    <li>增加学习时间和提高学习效率</li>
+                                    <li>提高课堂出勤率和参与度</li>
+                                    <li>加强作业完成情况的监督</li>
+                                    <li>提供个性化的辅导和支持</li>
+                                </ul>
+                            </div>
+                            {% elif score_level == '及格' %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>建议：</strong> 该学生成绩达到及格水平，但仍有提升空间。建议：
+                                <ul>
+                                    <li>巩固基础知识，查漏补缺</li>
+                                    <li>适当增加学习时间</li>
+                                    <li>提高课堂参与度</li>
+                                    <li>加强薄弱环节的练习</li>
+                                </ul>
+                            </div>
+                            {% elif score_level == '良好' %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-thumbs-up me-2"></i>
+                                <strong>良好：</strong> 该学生成绩良好，具有较好的学习能力。建议：
+                                <ul>
+                                    <li>保持良好的学习习惯</li>
+                                    <li>挑战更高难度的学习内容</li>
+                                    <li>培养独立思考和创新能力</li>
+                                    <li>参与更多拓展性学习活动</li>
+                                </ul>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-award me-2"></i>
+                                <strong>优秀：</strong> 该学生成绩优秀，具有很强的学习能力。建议：
+                                <ul>
+                                    <li>保持优秀的学习状态</li>
+                                    <li>拓展学习广度和深度</li>
+                                    <li>参与竞赛和高级课程</li>
+                                    <li>发展领导力和协作能力</li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <a href="{{ url_for('prediction') }}" class="btn btn-primary me-2">
+                            <i class="fas fa-redo me-2"></i>重新预测
+                        </a>
+                        <a href="{{ url_for('visualization') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-chart-bar me-2"></i>查看可视化分析
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

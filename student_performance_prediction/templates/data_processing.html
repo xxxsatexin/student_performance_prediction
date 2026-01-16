@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}数据处理 - 学生成绩预测系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">数据处理 - {{ filename }}</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        请选择目标变量、分类特征和数值特征，以便系统进行适当的数据处理。
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">数据信息</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>数据形状:</strong> {{ data_info.shape[0] }} 行 × {{ data_info.shape[1] }} 列</p>
+                                    <p><strong>数据类型:</strong></p>
+                                    <ul class="list-group">
+                                        {% for col, dtype in data_info.dtypes.items() %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            {{ col }}
+                                            <span class="badge bg-primary rounded-pill">{{ dtype }}</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">缺失值信息</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>列名</th>
+                                                    <th>缺失值数量</th>
+                                                    <th>缺失比例</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for col, missing in data_info.missing_values.items() %}
+                                                <tr>
+                                                    <td>{{ col }}</td>
+                                                    <td>{{ missing }}</td>
+                                                    <td>{{ (missing / data_info.shape[0] * 100) | round(2) }}%</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">数据预览</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            {% for col in preview_data[0].keys() %}
+                                            <th>{{ col }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in preview_data %}
+                                        <tr>
+                                            {% for col, val in row.items() %}
+                                            <td>{{ val }}</td>
+                                            {% endfor %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p class="text-muted mt-2">显示前10行数据</p>
+                        </div>
+                    </div>
+                    
+                    <form action="{{ url_for('data_processing', filename=filename) }}" method="post">
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">特征选择</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="target_column" class="form-label"><strong>目标变量</strong> (要预测的成绩列)</label>
+                                    <select class="form-select" id="target_column" name="target_column" required>
+                                        <option value="" selected disabled>请选择目标变量</option>
+                                        {% for col in columns %}
+                                        <option value="{{ col }}">{{ col }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label"><strong>分类特征</strong> (非数值型特征)</label>
+                                            <div class="border p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                                                {% for col in columns %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input feature-checkbox" type="checkbox" name="categorical_columns" value="{{ col }}" id="cat_{{ col }}">
+                                                    <label class="form-check-label" for="cat_{{ col }}">
+                                                        {{ col }}
+                                                    </label>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label"><strong>数值特征</strong> (数值型特征)</label>
+                                            <div class="border p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                                                {% for col in columns %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input feature-checkbox" type="checkbox" name="numerical_columns" value="{{ col }}" id="num_{{ col }}">
+                                                    <label class="form-check-label" for="num_{{ col }}">
+                                                        {{ col }}
+                                                    </label>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>要删除的列</strong> (不参与模型训练的列)</label>
+                                    <div class="border p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                                        {% for col in columns %}
+                                        <div class="form-check">
+                                            <input class="form-check-input feature-checkbox" type="checkbox" name="drop_columns" value="{{ col }}" id="drop_{{ col }}">
+                                            <label class="form-check-label" for="drop_{{ col }}">
+                                                {{ col }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-cogs me-2"></i>处理数据
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // 目标变量选择后，自动从其他选项中排除
+        $('#target_column').change(function() {
+            const targetCol = $(this).val();
+            
+            // 禁用目标变量在其他选项中的选择
+            $('.feature-checkbox').each(function() {
+                if ($(this).val() === targetCol) {
+                    $(this).prop('checked', false);
+                    $(this).prop('disabled', true);
+                } else {
+                    $(this).prop('disabled', false);
+                }
+            });
+        });
+        
+        // 根据数据类型自动选择分类和数值特征
+        const dtypes = JSON.parse('{{ data_info.dtypes | tojson }}');
+        
+        Object.entries(dtypes).forEach(([col, dtype]) => {
+            // 如果是数值类型
+            if (dtype.includes('int') || dtype.includes('float')) {
+                $(`#num_${col}`).prop('checked', true);
+            } 
+            // 如果是分类类型
+            else if (dtype.includes('object') || dtype.includes('category')) {
+                $(`#cat_${col}`).prop('checked', true);
+            }
+        });
+        
+        // 当选择删除列时，自动取消其他选项
+        $('input[name="drop_columns"]').change(function() {
+            const col = $(this).val();
+            const isChecked = $(this).prop('checked');
+            
+            if (isChecked) {
+                // 如果选择删除，取消其他选项
+                $(`#cat_${col}`).prop('checked', false);
+                $(`#num_${col}`).prop('checked', false);
+                
+                // 如果是目标变量，取消选择
+                if ($('#target_column').val() === col) {
+                    $('#target_column').val('');
+                }
+            }
+        });
+        
+        // 当选择其他选项时，自动取消删除选项
+        $('input[name="categorical_columns"], input[name="numerical_columns"]').change(function() {
+            const col = $(this).val();
+            const isChecked = $(this).prop('checked');
+            
+            if (isChecked) {
+                // 如果选择为特征，取消删除选项
+                $(`#drop_${col}`).prop('checked', false);
+            }
+        });
+    });
+</script>
+{% endblock %}

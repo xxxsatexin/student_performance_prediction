@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}批量预测 - 学生成绩预测系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">批量成绩预测</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        上传包含多名学生数据的文件，系统将为所有学生生成预测结果。
+                    </div>
+                    
+                    <form action="{{ url_for('prediction.batch_prediction') }}" method="post" enctype="multipart/form-data">
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">上传数据文件</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="batch_file" class="form-label">选择文件</label>
+                                    <input class="form-control" type="file" id="batch_file" name="batch_file" accept=".csv, .xlsx, .xls">
+                                    <div class="form-text">支持的文件格式：CSV, Excel (.xlsx, .xls)</div>
+                                </div>
+                                
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>注意：</strong> 上传的文件必须包含与训练数据相同的特征列。文件必须有表头行，且列名必须与训练数据一致。
+                                </div>
+                                
+                                <div class="text-center mt-3">
+                                    <a href="{{ url_for('prediction.download_template') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-download me-2"></i>下载数据模板
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">预测选项</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="model_select" class="form-label">选择模型</label>
+                                            <select class="form-select" id="model_select" name="model_select">
+                                                <option value="best">最佳模型（推荐）</option>
+                                                {% for model in available_models %}
+                                                <option value="{{ model }}">{{ model }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="output_format" class="form-label">输出格式</label>
+                                            <select class="form-select" id="output_format" name="output_format">
+                                                <option value="csv">CSV</option>
+                                                <option value="excel">Excel</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="include_confidence" name="include_confidence" checked>
+                                    <label class="form-check-label" for="include_confidence">包含预测置信区间</label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="include_explanations" name="include_explanations" checked>
+                                    <label class="form-check-label" for="include_explanations">包含预测解释</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-tasks me-2"></i>开始批量预测
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">批量预测说明</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-file-alt me-2 text-primary"></i>文件要求</h5>
+                            <ul>
+                                <li>文件必须是CSV或Excel格式</li>
+                                <li>必须包含表头行，且列名与训练数据一致</li>
+                                <li>每行代表一名学生的数据</li>
+                                <li>不应包含目标列（即学生成绩列）</li>
+                                <li>所有必要特征列都必须存在</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-cogs me-2 text-primary"></i>预测结果</h5>
+                            <ul>
+                                <li>系统将为每名学生生成预测成绩</li>
+                                <li>结果将包含原始数据和预测成绩</li>
+                                <li>可选择包含预测置信区间</li>
+                                <li>可选择包含简要的预测解释</li>
+                                <li>结果可下载为CSV或Excel格式</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>提示：</strong> 批量预测功能适用于需要同时预测多名学生成绩的场景，如班级期末成绩预测、学年成绩预测等。您可以根据预测结果识别可能需要额外支持的学生，并提前制定干预策略。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // 文件验证
+        $('#batch_file').change(function() {
+            const file = this.files[0];
+            if (file) {
+                const fileName = file.name;
+                const fileExt = fileName.split('.').pop().toLowerCase();
+                
+                if (!['csv', 'xlsx', 'xls'].includes(fileExt)) {
+                    alert('请上传CSV或Excel格式的文件');
+                    $(this).val('');
+                }
+            }
+        });
+        
+        // 表单验证
+        $('form').submit(function(e) {
+            const file = $('#batch_file')[0].files[0];
+            if (!file) {
+                e.preventDefault();
+                alert('请选择要上传的文件');
+            }
+        });
+    });
+</script>
+{% endblock %}

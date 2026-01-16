@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+
+{% block title %}单条预测 - 学生成绩预测系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">单条成绩预测</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        输入单个学生的数据，系统将立即生成预测结果。
+                    </div>
+                    
+                    <form id="prediction-form" action="{{ url_for('prediction.predict_single') }}" method="post">
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">学生信息</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="student_id" class="form-label">学生ID</label>
+                                            <input type="text" class="form-control" id="student_id" name="student_id" placeholder="可选">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="student_name" class="form-label">学生姓名</label>
+                                            <input type="text" class="form-control" id="student_name" name="student_name" placeholder="可选">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">学习数据</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="attendance_rate" class="form-label">出勤率 (0-1)</label>
+                                            <input type="number" step="0.01" min="0" max="1" class="form-control" id="attendance_rate" name="attendance_rate" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="homework_completion" class="form-label">作业完成率 (0-1)</label>
+                                            <input type="number" step="0.01" min="0" max="1" class="form-control" id="homework_completion" name="homework_completion" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="class_participation" class="form-label">课堂参与度 (0-1)</label>
+                                            <input type="number" step="0.01" min="0" max="1" class="form-control" id="class_participation" name="class_participation" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="study_hours_per_week" class="form-label">每周学习时间 (小时)</label>
+                                            <input type="number" step="0.5" min="0" max="100" class="form-control" id="study_hours_per_week" name="study_hours_per_week" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="previous_exam_score" class="form-label">上次考试成绩 (0-100)</label>
+                                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="previous_exam_score" name="previous_exam_score" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="difficulty_level" class="form-label">课程难度 (1-5)</label>
+                                            <select class="form-select" id="difficulty_level" name="difficulty_level">
+                                                <option value="1">1 - 非常简单</option>
+                                                <option value="2">2 - 简单</option>
+                                                <option value="3" selected>3 - 中等</option>
+                                                <option value="4">4 - 困难</option>
+                                                <option value="5">5 - 非常困难</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-calculator me-2"></i>预测成绩
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 预测结果卡片，初始隐藏 -->
+            <div id="prediction-result" class="card mt-4" style="display: none;">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">预测结果</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="text-center mb-4">
+                                <h2 class="display-4 fw-bold" id="predicted-score">--</h2>
+                                <p class="text-muted">预测分数</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center mb-4">
+                                <h5 class="mb-2">置信区间</h5>
+                                <p class="lead" id="confidence-interval">-- 至 --</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert" id="prediction-explanation">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <span id="explanation-text">根据预测结果，该学生需要...</span>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h5>关键影响因素</h5>
+                        <ul id="key-factors" class="list-group">
+                            <!-- 动态填充 -->
+                        </ul>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-outline-primary" onclick="resetForm()">
+                            <i class="fas fa-redo me-2"></i>重新预测
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="printResult()">
+                            <i class="fas fa-print me-2"></i>打印结果
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">单条预测说明</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-info-circle me-2 text-primary"></i>如何使用</h5>
+                            <ul>
+                                <li>填写学生的各项学习数据</li>
+                                <li>点击"预测成绩"按钮获取预测结果</li>
+                                <li>查看预测分数、置信区间和解释</li>
+                                <li>可以打印结果或重新预测</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-lightbulb me-2 text-primary"></i>数据说明</h5>
+                            <ul>
+                                <li><strong>出勤率</strong>：学生的课堂出勤比例，范围0-1</li>
+                                <li><strong>作业完成率</strong>：学生完成作业的比例，范围0-1</li>
+                                <li><strong>课堂参与度</strong>：学生在课堂上的参与程度，范围0-1</li>
+                                <li><strong>每周学习时间</strong>：学生每周用于学习的小时数</li>
+                                <li><strong>上次考试成绩</strong>：学生在上次考试中的得分，范围0-100</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>提示：</strong> 单条预测功能适用于快速评估单个学生的预期表现，可以帮助教师与学生进行一对一交流，讨论学习进展和改进方向。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // 表单提交处理
+        $('#prediction-form').submit(function(e) {
+            e.preventDefault();
+            
+            // 获取表单数据
+            const formData = {};
+            $(this).serializeArray().forEach(function(item) {
+                formData[item.name] = item.value;
+            });
+            
+            // 发送AJAX请求
+            $.ajax({
+                url: "{{ url_for('prediction.predict') }}",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    // 显示预测结果
+                    $('#predicted-score').text(parseFloat(response.prediction).toFixed(2));
+                    
+                    // 计算置信区间（使用模型的RMSE）
+                    const rmse = 5.0; // 默认值，实际应从模型元数据获取
+                    const lowerBound = Math.max(0, parseFloat(response.prediction) - 1.96 * rmse).toFixed(2);
+                    const upperBound = Math.min(100, parseFloat(response.prediction) + 1.96 * rmse).toFixed(2);
+                    $('#confidence-interval').text(`${lowerBound} 至 ${upperBound}`);
+                    
+                    // 设置解释文本和样式
+                    const score = parseFloat(response.prediction);
+                    let explanation = "";
+                    let alertClass = "";
+                    
+                    if (score < 60) {
+                        explanation = "根据预测结果，该学生需要额外辅导和关注，建议制定个性化学习计划。";
+                        alertClass = "alert-danger";
+                    } else if (score < 70) {
+                        explanation = "该学生需要巩固基础知识，建议增加练习和复习时间。";
+                        alertClass = "alert-warning";
+                    } else if (score < 85) {
+                        explanation = "该学生表现良好，可以适当提高学习难度和深度。";
+                        alertClass = "alert-info";
+                    } else {
+                        explanation = "该学生表现优秀，建议提供更具挑战性的学习内容和项目。";
+                        alertClass = "alert-success";
+                    }
+                    
+                    $('#prediction-explanation').removeClass("alert-danger alert-warning alert-info alert-success").addClass(alertClass);
+                    $('#explanation-text').text(explanation);
+                    
+                    // 生成关键影响因素
+                    generateKeyFactors(formData, score);
+                    
+                    // 显示结果卡片
+                    $('#prediction-result').fadeIn();
+                    
+                    // 滚动到结果区域
+                    $('html, body').animate({
+                        scrollTop: $("#prediction-result").offset().top - 20
+                    }, 500);
+                },
+                error: function(error) {
+                    alert("预测失败：" + (error.responseJSON ? error.responseJSON.error : "未知错误"));
+                }
+            });
+        });
+    });
+    
+    // 生成关键影响因素
+    function generateKeyFactors(formData, predictedScore) {
+        const keyFactors = $('#key-factors');
+        keyFactors.empty();
+        
+        // 分析输入数据，找出关键因素
+        const factors = [
+            {
+                name: "出勤率",
+                value: parseFloat(formData.attendance_rate),
+                threshold: 0.8,
+                message: formData.attendance_rate < 0.8 ? 
+                    "出勤率较低，建议提高课堂出勤" : 
+                    "出勤率良好，继续保持"
+            },
+            {
+                name: "作业完成率",
+                value: parseFloat(formData.homework_completion),
+                threshold: 0.85,
+                message: formData.homework_completion < 0.85 ? 
+                    "作业完成率不足，需要更加重视课后作业" : 
+                    "作业完成情况良好，继续保持"
+            },
+            {
+                name: "课堂参与度",
+                value: parseFloat(formData.class_participation),
+                threshold: 0.7,
+                message: formData.class_participation < 0.7 ? 
+                    "课堂参与度不足，建议积极回答问题和参与讨论" : 
+                    "课堂参与度良好，继续保持"
+            },
+            {
+                name: "每周学习时间",
+                value: parseFloat(formData.study_hours_per_week),
+                threshold: 10,
+                message: formData.study_hours_per_week < 10 ? 
+                    "学习时间不足，建议增加每周学习时间" : 
+                    "学习时间充足，注意提高学习效率"
+            },
+            {
+                name: "上次考试成绩",
+                value: parseFloat(formData.previous_exam_score),
+                threshold: 70,
+                message: formData.previous_exam_score < 70 ? 
+                    "上次考试成绩不理想，需要查漏补缺" : 
+                    "上次考试表现良好，继续保持"
+            }
+        ];
+        
+        // 排序因素（低于阈值的排在前面）
+        factors.sort((a, b) => {
+            const aBelow = a.value < a.threshold;
+            const bBelow = b.value < b.threshold;
+            
+            if (aBelow && !bBelow) return -1;
+            if (!aBelow && bBelow) return 1;
+            
+            // 如果都低于或都高于阈值，按值排序
+            return a.value - b.value;
+        });
+        
+        // 添加到列表
+        factors.forEach(factor => {
+            const listItem = $('<li class="list-group-item d-flex justify-content-between align-items-center"></li>');
+            
+            // 设置样式
+            if (factor.value < factor.threshold) {
+                listItem.addClass('list-group-item-warning');
+            }
+            
+            // 添加内容
+            listItem.html(`
+                <div>
+                    <strong>${factor.name}:</strong> ${factor.value}
+                    <div class="small text-muted">${factor.message}</div>
+                </div>
+                <span class="badge ${factor.value < factor.threshold ? 'bg-warning' : 'bg-success'} rounded-pill">
+                    ${factor.value < factor.threshold ? '需改进' : '良好'}
+                </span>
+            `);
+            
+            keyFactors.append(listItem);
+        });
+    }
+    
+    // 重置表单
+    function resetForm() {
+        $('#prediction-form')[0].reset();
+        $('#prediction-result').hide();
+    }
+    
+    // 打印结果
+    function printResult() {
+        const printContent = `
+            <html>
+            <head>
+                <title>学生成绩预测结果</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .result { font-size: 24px; text-align: center; margin: 20px 0; }
+                    .info { margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                    th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #666; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>学生成绩预测结果</h1>
+                    <p>生成时间: ${new Date().toLocaleString()}</p>
+                </div>
+                
+                <div class="info">
+                    <p><strong>学生ID:</strong> ${$('#student_id').val() || '未提供'}</p>
+                    <p><strong>学生姓名:</strong> ${$('#student_name').val() || '未提供'}</p>
+                </div>
+                
+                <div class="result">
+                    <p>预测分数: <strong>${$('#predicted-score').text()}</strong></p>
+                    <p>置信区间: ${$('#confidence-interval').text()}</p>
+                </div>
+                
+                <p><strong>预测解释:</strong> ${$('#explanation-text').text()}</p>
+                
+                <h3>学生数据</h3>
+                <table>
+                    <tr>
+                        <th>指标</th>
+                        <th>值</th>
+                    </tr>
+                    <tr>
+                        <td>出勤率</td>
+                        <td>${$('#attendance_rate').val()}</td>
+                    </tr>
+                    <tr>
+                        <td>作业完成率</td>
+                        <td>${$('#homework_completion').val()}</td>
+                    </tr>
+                    <tr>
+                        <td>课堂参与度</td>
+                        <td>${$('#class_participation').val()}</td>
+                    </tr>
+                    <tr>
+                        <td>每周学习时间</td>
+                        <td>${$('#study_hours_per_week').val()} 小时</td>
+                    </tr>
+                    <tr>
+                        <td>上次考试成绩</td>
+                        <td>${$('#previous_exam_score').val()}</td>
+                    </tr>
+                    <tr>
+                        <td>课程难度</td>
+                        <td>${$('#difficulty_level option:selected').text()}</td>
+                    </tr>
+                </table>
+                
+                <h3>改进建议</h3>
+                <ul>
+                    ${$('#key-factors li').map(function() {
+                        return '<li>' + $(this).find('div').text().trim() + '</li>';
+                    }).get().join('')}
+                </ul>
+                
+                <div class="footer">
+                    <p>此预测结果由学生成绩预测系统生成，仅供参考。</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // 延迟打印，确保内容加载完成
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    }
+</script>
+{% endblock %}

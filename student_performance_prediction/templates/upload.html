@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}上传数据 - 学生成绩预测系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">上传学生数据</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        请上传包含学生信息和成绩数据的CSV或Excel文件。文件应包含学生的各项特征（如出勤率、作业完成情况等）和目标成绩列。
+                    </div>
+                    
+                    <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="mt-4">
+                        <div class="mb-4 text-center">
+                            <div class="upload-area p-5 border rounded" id="drop-area">
+                                <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
+                                <h4>拖放文件到这里或点击选择文件</h4>
+                                <p class="text-muted">支持的文件格式: .csv, .xlsx, .xls</p>
+                                <input type="file" name="file" id="file-input" class="d-none" accept=".csv,.xlsx,.xls">
+                                <button type="button" class="btn btn-outline-primary mt-3" id="browse-btn">
+                                    <i class="fas fa-folder-open me-2"></i>浏览文件
+                                </button>
+                            </div>
+                            <div id="file-name" class="mt-3 fw-bold"></div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg" id="upload-btn" disabled>
+                                <i class="fas fa-upload me-2"></i>上传文件
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">数据要求</h4>
+                </div>
+                <div class="card-body">
+                    <p>为了获得最佳预测效果，上传的数据应包含以下信息：</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-user me-2 text-primary"></i>学生基本信息</h5>
+                            <ul>
+                                <li>学生ID</li>
+                                <li>性别</li>
+                                <li>年龄</li>
+                                <li>年级/班级</li>
+                                <li>家庭背景信息（可选）</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-book me-2 text-primary"></i>学习相关指标</h5>
+                            <ul>
+                                <li>出勤率</li>
+                                <li>作业完成情况</li>
+                                <li>课堂参与度</li>
+                                <li>以往考试成绩</li>
+                                <li>学习时间</li>
+                                <li>目标成绩（用于训练）</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>注意：</strong> 请确保数据中不包含敏感的个人身份信息，以保护学生隐私。
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h5><i class="fas fa-file-csv me-2 text-primary"></i>示例数据格式</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>student_id</th>
+                                        <th>gender</th>
+                                        <th>age</th>
+                                        <th>attendance_rate</th>
+                                        <th>study_time</th>
+                                        <th>assignment_completion_rate</th>
+                                        <th>previous_grade</th>
+                                        <th>final_grade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>1001</td>
+                                        <td>M</td>
+                                        <td>15</td>
+                                        <td>0.95</td>
+                                        <td>3.5</td>
+                                        <td>0.92</td>
+                                        <td>85</td>
+                                        <td>88</td>
+                                    </tr>
+                                    <tr>
+                                        <td>1002</td>
+                                        <td>F</td>
+                                        <td>16</td>
+                                        <td>0.88</td>
+                                        <td>2.8</td>
+                                        <td>0.85</td>
+                                        <td>78</td>
+                                        <td>80</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // 点击浏览按钮触发文件选择
+        $('#browse-btn').click(function() {
+            $('#file-input').click();
+        });
+        
+        // 文件选择后显示文件名
+        $('#file-input').change(function() {
+            const file = this.files[0];
+            if (file) {
+                $('#file-name').text('已选择: ' + file.name);
+                $('#upload-btn').prop('disabled', false);
+            } else {
+                $('#file-name').text('');
+                $('#upload-btn').prop('disabled', true);
+            }
+        });
+        
+        // 拖放文件功能
+        const dropArea = document.getElementById('drop-area');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('border-primary');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('border-primary');
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                const file = files[0];
+                const fileInput = document.getElementById('file-input');
+                
+                // 检查文件类型
+                const validExtensions = ['.csv', '.xlsx', '.xls'];
+                const fileName = file.name;
+                const fileExtension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
+                
+                if (validExtensions.includes(fileExtension)) {
+                    // 将拖放的文件分配给文件输入
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    fileInput.files = dataTransfer.files;
+                    
+                    // 触发change事件
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                } else {
+                    alert('不支持的文件类型。请上传CSV或Excel文件。');
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

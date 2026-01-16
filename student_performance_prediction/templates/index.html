@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 学生成绩预测系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="text-center mb-0">欢迎使用学生成绩预测系统</h2>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-graduation-cap fa-4x text-primary"></i>
+                    </div>
+                    <p class="lead text-center">
+                        本系统利用机器学习技术，通过分析学生的历史数据来预测学生的学习成绩，
+                        帮助教育工作者提前识别可能需要额外支持的学生，并为个性化教学提供数据支持。
+                    </p>
+                    
+                    <div class="row mt-5">
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-database fa-3x text-primary mb-3"></i>
+                                    <h4>数据处理</h4>
+                                    <p>上传学生数据，进行清洗、标准化和特征工程，为模型训练做准备。</p>
+                                    <a href="{{ url_for('upload_file') }}" class="btn btn-outline-primary mt-3">开始上传</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-brain fa-3x text-primary mb-3"></i>
+                                    <h4>模型训练</h4>
+                                    <p>使用多种机器学习算法构建预测模型，并评估其性能。</p>
+                                    <a href="{{ url_for('model_training') }}" class="btn btn-outline-primary mt-3">训练模型</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                                    <h4>成绩预测</h4>
+                                    <p>使用训练好的模型进行单个或批量学生成绩预测。</p>
+                                    <a href="{{ url_for('prediction') }}" class="btn btn-outline-primary mt-3">开始预测</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12 text-center">
+                            <a href="{{ url_for('upload_file') }}" class="btn btn-primary btn-lg mt-4">
+                                <i class="fas fa-play-circle me-2"></i>开始使用
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">系统功能</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-group">
+                                <li class="list-group-item">
+                                    <i class="fas fa-check-circle text-success me-2"></i>数据收集与预处理
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check-circle text-success me-2"></i>特征工程与选择
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check-circle text-success me-2"></i>多种机器学习模型训练
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-group">
+                                <li class="list-group-item">
+                                    <i class="fas fa-check-circle text-success me-2"></i>模型评估与比较
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check-circle text-success me-2"></i>单个和批量成绩预测
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check-circle text-success me-2"></i>数据可视化与分析
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

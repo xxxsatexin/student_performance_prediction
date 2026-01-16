@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}模型训练 - 学生成绩预测系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">模型训练</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        选择要训练的机器学习模型和相关参数，系统将自动训练并评估模型性能。
+                    </div>
+                    
+                    <form action="{{ url_for('model_training') }}" method="post">
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">选择模型</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>选择一个或多个模型进行训练和评估：</p>
+                                
+                                <div class="row">
+                                    {% for model in available_models %}
+                                    <div class="col-md-4 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="models" value="{{ model }}" id="model_{{ model }}" {% if model == 'LinearRegression' %}checked{% endif %}>
+                                            <label class="form-check-label" for="model_{{ model }}">
+                                                {{ model }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">训练参数</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="test_size" class="form-label">测试集比例</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" id="test_size" name="test_size" min="0.1" max="0.5" step="0.05" value="0.2">
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                            <div class="form-text">用于测试的数据比例（0.1-0.5）</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="random_state" class="form-label">随机种子</label>
+                                            <input type="number" class="form-control" id="random_state" name="random_state" min="0" value="42">
+                                            <div class="form-text">确保结果可重现的随机数种子</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="cv_folds" class="form-label">交叉验证折数</label>
+                                            <input type="number" class="form-control" id="cv_folds" name="cv_folds" min="2" max="10" value="5">
+                                            <div class="form-text">交叉验证的折数（2-10）</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">高级选项</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="hyperparameter_tuning" checked>
+                                    <label class="form-check-label" for="hyperparameter_tuning">启用超参数调优</label>
+                                </div>
+                                <div class="form-text">启用超参数调优可以提高模型性能，但会增加训练时间。</div>
+                                
+                                <div id="tuning_options" class="mt-3">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="tuning_method" class="form-label">调优方法</label>
+                                                <select class="form-select" id="tuning_method">
+                                                    <option value="grid">网格搜索</option>
+                                                    <option value="random" selected>随机搜索</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="tuning_cv" class="form-label">调优交叉验证折数</label>
+                                                <input type="number" class="form-control" id="tuning_cv" min="2" max="5" value="3">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-brain me-2"></i>开始训练模型
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">模型说明</h4>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="modelAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingLinear">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLinear" aria-expanded="false" aria-controls="collapseLinear">
+                                    线性回归 (Linear Regression)
+                                </button>
+                            </h2>
+                            <div id="collapseLinear" class="accordion-collapse collapse" aria-labelledby="headingLinear" data-bs-parent="#modelAccordion">
+                                <div class="accordion-body">
+                                    <p>线性回归是最基本的回归模型，通过建立目标变量与特征之间的线性关系进行预测。</p>
+                                    <p><strong>优点：</strong> 简单、易于解释、计算效率高</p>
+                                    <p><strong>缺点：</strong> 只能捕捉线性关系，对异常值敏感</p>
+                                    <p><strong>适用场景：</strong> 特征与目标变量存在线性关系的简单预测任务</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingRidge">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRidge" aria-expanded="false" aria-controls="collapseRidge">
+                                    岭回归 (Ridge Regression)
+                                </button>
+                            </h2>
+                            <div id="collapseRidge" class="accordion-collapse collapse" aria-labelledby="headingRidge" data-bs-parent="#modelAccordion">
+                                <div class="accordion-body">
+                                    <p>岭回归是线性回归的正则化版本，通过L2正则化减少过拟合风险。</p>
+                                    <p><strong>优点：</strong> 处理多重共线性问题，减少过拟合</p>
+                                    <p><strong>缺点：</strong> 仍然只能捕捉线性关系</p>
+                                    <p><strong>适用场景：</strong> 特征之间存在高度相关性的预测任务</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingLasso">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLasso" aria-expanded="false" aria-controls="collapseLasso">
+                                    Lasso回归 (Lasso Regression)
+                                </button>
+                            </h2>
+                            <div id="collapseLasso" class="accordion-collapse collapse" aria-labelledby="headingLasso" data-bs-parent="#modelAccordion">
+                                <div class="accordion-body">
+                                    <p>Lasso回归使用L1正则化，可以将不重要特征的系数压缩为零，实现特征选择。</p>
+                                    <p><strong>优点：</strong> 自动特征选择，减少过拟合</p>
+                                    <p><strong>缺点：</strong> 在特征高度相关时可能表现不稳定</p>
+                                    <p><strong>适用场景：</strong> 需要特征选择的高维数据预测任务</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingRF">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRF" aria-expanded="false" aria-controls="collapseRF">
+                                    随机森林 (Random Forest)
+                                </button>
+                            </h2>
+                            <div id="collapseRF" class="accordion-collapse collapse" aria-labelledby="headingRF" data-bs-parent="#modelAccordion">
+                                <div class="accordion-body">
+                                    <p>随机森林是一种集成学习方法，通过构建多个决策树并取平均值进行预测。</p>
+                                    <p><strong>优点：</strong> 可捕捉非线性关系，不易过拟合，提供特征重要性</p>
+                                    <p><strong>缺点：</strong> 计算复杂度高，模型解释性较差</p>
+                                    <p><strong>适用场景：</strong> 复杂的非线性预测任务，需要稳定性和准确性</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingGBR">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGBR" aria-expanded="false" aria-controls="collapseGBR">
+                                    梯度提升回归 (Gradient Boosting Regressor)
+                                </button>
+                            </h2>
+                            <div id="collapseGBR" class="accordion-collapse collapse" aria-labelledby="headingGBR" data-bs-parent="#modelAccordion">
+                                <div class="accordion-body">
+                                    <p>梯度提升回归是一种集成学习方法，通过顺序构建弱学习器来逐步减少误差。</p>
+                                    <p><strong>优点：</strong> 高预测准确性，可捕捉复杂的非线性关系</p>
+                                    <p><strong>缺点：</strong> 容易过拟合，对异常值敏感，训练时间长</p>
+                                    <p><strong>适用场景：</strong> 需要高预测准确性的复杂预测任务</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingSVR">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSVR" aria-expanded="false" aria-controls="collapseSVR">
+                                    支持向量回归 (Support Vector Regressor)
+                                </button>
+                            </h2>
+                            <div id="collapseSVR" class="accordion-collapse collapse" aria-labelledby="headingSVR" data-bs-parent="#modelAccordion">
+                                <div class="accordion-body">
+                                    <p>支持向量回归使用支持向量机的原理进行回归预测，通过核函数可以处理非线性关系。</p>
+                                    <p><strong>优点：</strong> 对高维数据有效，可处理非线性关系</p>
+                                    <p><strong>缺点：</strong> 对参数敏感，计算复杂度高，不适合大数据集</p>
+                                    <p><strong>适用场景：</strong> 中小型复杂数据集的预测任务</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // 超参数调优开关
+        $('#hyperparameter_tuning').change(function() {
+            if ($(this).is(':checked')) {
+                $('#tuning_options').show();
+            } else {
+                $('#tuning_options').hide();
+            }
+        });
+        
+        // 至少选择一个模型
+        $('form').submit(function(e) {
+            if (!$('input[name="models"]:checked').length) {
+                e.preventDefault();
+                alert('请至少选择一个模型进行训练');
+            }
+        });
+        
+        // 测试集比例验证
+        $('#test_size').change(function() {
+            const value = parseFloat($(this).val());
+            if (value < 0.1) {
+                $(this).val(0.1);
+            } else if (value > 0.5) {
+                $(this).val(0.5);
+            }
+        });
+    });
+</script>
+{% endblock %}

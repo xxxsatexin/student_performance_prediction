@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}成绩预测 - 学生成绩预测系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">学生成绩预测</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        请输入学生的各项特征数据，系统将使用训练好的模型预测学生的成绩。
+                    </div>
+                    
+                    <form action="{{ url_for('prediction') }}" method="post">
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">学生信息</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% for column in feature_columns %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ column }}" class="form-label">{{ column }}</label>
+                                        <input type="text" class="form-control" id="{{ column }}" name="{{ column }}" placeholder="输入{{ column }}">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-chart-line me-2"></i>预测成绩
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">使用说明</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-info-circle me-2 text-primary"></i>数据输入指南</h5>
+                            <ul>
+                                <li>数值型特征（如出勤率）应输入具体数值，例如：0.95</li>
+                                <li>分类型特征（如性别）应输入具体类别，例如：M 或 F</li>
+                                <li>所有必填字段都需要填写，否则可能影响预测准确性</li>
+                                <li>输入数据应与训练数据的格式保持一致</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-lightbulb me-2 text-primary"></i>预测结果解读</h5>
+                            <ul>
+                                <li>预测结果是基于历史数据和当前输入的估计值</li>
+                                <li>预测结果仅供参考，实际成绩可能受多种因素影响</li>
+                                <li>系统会显示预测的具体分数</li>
+                                <li>您可以根据预测结果调整教学策略或提供针对性辅导</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>注意：</strong> 预测结果的准确性取决于模型训练的质量和输入数据的完整性。请确保输入准确的数据以获得最佳预测效果。
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">批量预测</h4>
+                </div>
+                <div class="card-body text-center">
+                    <p>需要为多名学生预测成绩？使用批量预测功能。</p>
+                    <a href="{{ url_for('batch_prediction') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-tasks me-2"></i>前往批量预测
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // 表单验证
+        $('form').submit(function(e) {
+            let isValid = true;
+            let emptyFields = [];
+            
+            // 检查必填字段
+            $('.form-control').each(function() {
+                if ($(this).val() === '') {
+                    isValid = false;
+                    emptyFields.push($(this).attr('id'));
+                    $(this).addClass('is-invalid');
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('请填写所有必填字段: ' + emptyFields.join(', '));
+            }
+        });
+        
+        // 输入框焦点事件
+        $('.form-control').focus(function() {
+            $(this).removeClass('is-invalid');
+        });
+        
+        // 数值型输入验证
+        $('.form-control').blur(function() {
+            const id = $(this).attr('id');
+            const value = $(this).val();
+            
+            // 检查是否为数值型字段
+            if (id.includes('rate') || id.includes('time') || id.includes('score') || id.includes('grade')) {
+                if (value !== '' && isNaN(value)) {
+                    $(this).addClass('is-invalid');
+                    alert(`${id} 应为数值`);
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

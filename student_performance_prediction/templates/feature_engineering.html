@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}特征工程 - 学生成绩预测系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">特征工程</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        特征工程是提高模型性能的关键步骤。在这里，您可以创建新特征、选择重要特征，以增强模型的预测能力。
+                    </div>
+                    
+                    <form action="{{ url_for('feature_engineering') }}" method="post">
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">交互特征</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>交互特征是两个特征的乘积，可以捕捉特征之间的相互作用。</p>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-10">
+                                        <select class="form-select mb-2" id="interaction_feature1">
+                                            <option value="" selected disabled>选择第一个特征</option>
+                                            {% for col in feature_columns %}
+                                            <option value="{{ col }}">{{ col }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <select class="form-select" id="interaction_feature2">
+                                            <option value="" selected disabled>选择第二个特征</option>
+                                            {% for col in feature_columns %}
+                                            <option value="{{ col }}">{{ col }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-success w-100 h-100" id="add_interaction">
+                                            <i class="fas fa-plus"></i> 添加
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="border p-3 rounded mb-3" id="interaction_features_container">
+                                    <p class="text-muted" id="no_interaction_text">尚未添加交互特征</p>
+                                    <ul class="list-group" id="interaction_features_list"></ul>
+                                </div>
+                                
+                                <div id="interaction_features_hidden"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">多项式特征</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>多项式特征是原始特征的幂，可以捕捉非线性关系。</p>
+                                
+                                <div class="border p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                                    {% for col in feature_columns %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="polynomial_features" value="{{ col }}" id="poly_{{ col }}">
+                                        <label class="form-check-label" for="poly_{{ col }}">
+                                            {{ col }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">分箱特征</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>分箱特征将连续值分成几个区间，可以捕捉非线性关系并减少异常值的影响。</p>
+                                
+                                <div class="border p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                                    {% for col in feature_columns %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="binning_features" value="{{ col }}" id="bin_{{ col }}">
+                                        <label class="form-check-label" for="bin_{{ col }}">
+                                            {{ col }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">特征选择</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>特征选择可以减少模型复杂性，提高性能并防止过拟合。</p>
+                                
+                                <div class="mb-3">
+                                    <label for="feature_selection" class="form-label">选择方法</label>
+                                    <select class="form-select" id="feature_selection" name="feature_selection">
+                                        <option value="none">不进行特征选择</option>
+                                        <option value="correlation">基于相关性</option>
+                                        <option value="mutual_info">基于互信息</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3" id="n_features_container" style="display: none;">
+                                    <label for="n_features" class="form-label">保留特征数量</label>
+                                    <input type="number" class="form-control" id="n_features" name="n_features" min="1" value="10">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-tools me-2"></i>应用特征工程
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // 特征选择方法改变时显示/隐藏特征数量输入框
+        $('#feature_selection').change(function() {
+            if ($(this).val() === 'none') {
+                $('#n_features_container').hide();
+            } else {
+                $('#n_features_container').show();
+            }
+        });
+        
+        // 添加交互特征
+        $('#add_interaction').click(function() {
+            const feature1 = $('#interaction_feature1').val();
+            const feature2 = $('#interaction_feature2').val();
+            
+            if (feature1 && feature2 && feature1 !== feature2) {
+                const featurePair = `${feature1} × ${feature2}`;
+                const featureId = `interaction_${feature1}_${feature2}`;
+                
+                // 检查是否已存在
+                if ($(`#${featureId}`).length === 0) {
+                    // 添加到列表
+                    $('#no_interaction_text').hide();
+                    $('#interaction_features_list').append(`
+                        <li class="list-group-item d-flex justify-content-between align-items-center" id="${featureId}">
+                            ${featurePair}
+                            <button type="button" class="btn btn-sm btn-danger remove-interaction" data-id="${featureId}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </li>
+                    `);
+                    
+                    // 添加隐藏输入
+                    $('#interaction_features_hidden').append(`
+                        <input type="hidden" name="interaction_features" value="${feature1}">
+                        <input type="hidden" name="interaction_features" value="${feature2}">
+                    `);
+                    
+                    // 清空选择
+                    $('#interaction_feature1').val('');
+                    $('#interaction_feature2').val('');
+                } else {
+                    alert('该交互特征已添加');
+                }
+            } else if (feature1 === feature2) {
+                alert('请选择两个不同的特征');
+            } else {
+                alert('请选择两个特征');
+            }
+        });
+        
+        // 删除交互特征
+        $(document).on('click', '.remove-interaction', function() {
+            const id = $(this).data('id');
+            const parts = id.split('_');
+            const feature1 = parts[1];
+            const feature2 = parts[2];
+            
+            // 移除列表项
+            $(`#${id}`).remove();
+            
+            // 移除隐藏输入
+            $('#interaction_features_hidden input[value="' + feature1 + '"]').remove();
+            $('#interaction_features_hidden input[value="' + feature2 + '"]').remove();
+            
+            // 如果没有交互特征，显示提示文本
+            if ($('#interaction_features_list li').length === 0) {
+                $('#no_interaction_text').show();
+            }
+        });
+    });
+</script>
+{% endblock %}
